@@ -1,0 +1,17 @@
+{
+    "cred_atgapi": {
+        "username": "api_user",
+        "password": "api_pass",
+        "client_id": "api_id",
+        "client_secret": "api_secret"
+    },
+    "cred_mdapi": {
+        "client_id": "mdapi_client",
+        "client_secret":  "mdapi_secret"
+    },
+    "base_url": "baseserviceurl.com",
+    "atgapi_port": "11111",
+    "mdapi_port": "22222",
+    "token_port": "33333",
+    "export_interval_min": 15
+}
