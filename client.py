@@ -25,6 +25,7 @@ def get_token():
 class WebSocketClient:
     def __init__(self):
         self.PLConsolidator = PLConsolidator()
+        self.incomingMsgs = []
 
     def on_open(self, ws):
         token = get_token()
@@ -35,7 +36,9 @@ class WebSocketClient:
             ws.send(b'\xff')
             return
         messageDes = msgpack.unpackb(message)
-        self.PLConsolidator.process_message(messageDes)
+        self.incomingMsgs.append(messageDes)
+        self.PLConsolidator.process_message(self.incomingMsgs)
+        self.incomingMsgs.clear()
 
     def on_error(self, error):
         print(f"Error {error}")
@@ -48,7 +51,7 @@ class WebSocketClient:
             on_open = lambda ws: self.on_open(ws),
             on_error = lambda ws,msg: self.on_error(msg),
             on_message = lambda ws,msg: self.on_message(ws, msg))
-        ws.run_forever(ping_interval=240, ping_timeout=120)
+        ws.run_forever(ping_interval=30, ping_timeout=None)
 
     def export_PL(self):
         while True:

@@ -23,19 +23,25 @@ class PLConsolidator:
         self.sell_PL: dict[str, PLInfo] = {}
         self.md_info = {}
 
-    def process_message(self, msg):
-        date = datetime.strptime(msg['TradeDate'].split('T')[0], '%Y-%m-%d')
-        if date.day < datetime.today().day: 
-            return
+    def process_message(self, incomingMsgs):
+        while len(incomingMsgs) > 0:
+            msg = incomingMsgs.pop()
+            date = datetime.strptime(msg['TradeDate'].split('T')[0], '%Y-%m-%d')
+            if date.day < datetime.today().day or msg['StrategyID'].startswith('bi'): 
+                return
 
-        if msg['Symbol'] not in self.md_info:
-            self.md_info[msg['Symbol']] = get_symbol_info(msg['Symbol'])
-        md = self.md_info[msg['Symbol']]
-        
-        if msg['Side'] == 'BUY':
-            self.buy_PL = self.get_updated_data(self.buy_PL, msg, md)
-        else:
-            self.sell_PL = self.get_updated_data(self.sell_PL, msg, md)
+            if msg['Symbol'] not in self.md_info:
+                self.md_info[msg['Symbol']] = get_symbol_info(msg['Symbol'])
+            md = self.md_info[msg['Symbol']]
+            
+            if msg['Side'] == 'BUY':
+                if msg['User'] not in self.buy_PL:
+                    self.buy_PL[msg['User']] = {}
+                self.buy_PL[msg['User']] = self.get_updated_data(self.buy_PL[msg['User']], msg, md)
+            else:
+                if msg['User'] not in self.sell_PL:
+                    self.sell_PL[msg['User']] = {}
+                self.sell_PL[msg['User']] = self.get_updated_data(self.sell_PL[msg['User']], msg, md)
 
     def get_updated_data(self, pls, msg, md):
         symbol = msg['Symbol']
@@ -66,13 +72,15 @@ class PLConsolidator:
                 writer = csv.writer(file) 
                 writer.writerow(header)
 
-                for symbol in self.buy_PL:
-                    pl = self.buy_PL[symbol]
-                    writer.writerow(self.format_row(dt, symbol, 'buy', pl))
+                for user in self.buy_PL:
+                    for symbol in self.buy_PL[user]:
+                        pl = self.buy_PL[user][symbol]
+                        writer.writerow(self.format_row(dt, symbol, 'buy', pl))
 
-                for symbol in self.sell_PL:
-                    pl = self.sell_PL[symbol]
-                    writer.writerow(self.format_row(dt, symbol, 'sell', pl))
+                for user in self.sell_PL:
+                    for symbol in self.sell_PL[user]:
+                        pl = self.sell_PL[user][symbol]
+                        writer.writerow(self.format_row(dt, symbol, 'sell', pl))
             print(f"{dt:%H:%M:%S}: Dado exportado")
         else:
             print(f"{dt:%H:%M:%S}: Não foram encontrados dados de PL para exportação")
