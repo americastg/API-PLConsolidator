@@ -1,7 +1,12 @@
 # API PL Consolidator
 Aplicação que consolida dados de P&L e armazena em arquivo csv
 
+## Requisitos
+- Python 3.7 ou superior
+
 ## Setup
+Executar os seguintes comandos via prompt de comando de dentro da pasta do projeto 
+
 1. Criar ambiente virtual
 ```console
 python -m venv venv
