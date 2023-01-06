@@ -23,25 +23,26 @@ class PLConsolidator:
         self.sell_PL: dict[str, PLInfo] = {}
         self.md_info = {}
 
-    def process_message(self, incomingMsgs):
-        while len(incomingMsgs) > 0:
-            msg = incomingMsgs.pop()
-            date = datetime.strptime(msg['TradeDate'].split('T')[0], '%Y-%m-%d')
-            if date.day < datetime.today().day or msg['StrategyID'].startswith('bi'): 
-                return
+    def process_message(self, msg):
+        # trades do dia
+        date = datetime.strptime(msg['TradeDate'].split('T')[0], '%Y-%m-%d').date()
+        if date < datetime.today().date() or msg['StrategyID'].startswith('bi'): 
+            return
 
-            if msg['Symbol'] not in self.md_info:
-                self.md_info[msg['Symbol']] = get_symbol_info(msg['Symbol'])
-            md = self.md_info[msg['Symbol']]
-            
-            if msg['Side'] == 'BUY':
-                if msg['User'] not in self.buy_PL:
-                    self.buy_PL[msg['User']] = {}
-                self.buy_PL[msg['User']] = self.get_updated_data(self.buy_PL[msg['User']], msg, md)
-            else:
-                if msg['User'] not in self.sell_PL:
-                    self.sell_PL[msg['User']] = {}
-                self.sell_PL[msg['User']] = self.get_updated_data(self.sell_PL[msg['User']], msg, md)
+        # obtém info do papel
+        if msg['Symbol'] not in self.md_info:
+            self.md_info[msg['Symbol']] = get_symbol_info(msg['Symbol'])
+        md = self.md_info[msg['Symbol']]
+        
+        # consolida e atualiza
+        if msg['Side'] == 'BUY':
+            if msg['User'] not in self.buy_PL:
+                self.buy_PL[msg['User']] = {}
+            self.buy_PL[msg['User']] = self.get_updated_data(self.buy_PL[msg['User']], msg, md)
+        else:
+            if msg['User'] not in self.sell_PL:
+                self.sell_PL[msg['User']] = {}
+            self.sell_PL[msg['User']] = self.get_updated_data(self.sell_PL[msg['User']], msg, md)
 
     def get_updated_data(self, pls, msg, md):
         symbol = msg['Symbol']
@@ -71,7 +72,7 @@ class PLConsolidator:
             with open(path, 'w', newline='') as file:
                 writer = csv.writer(file) 
                 writer.writerow(header)
-
+                
                 for user in self.buy_PL:
                     for symbol in self.buy_PL[user]:
                         pl = self.buy_PL[user][symbol]
@@ -97,8 +98,8 @@ class PLConsolidator:
             symbol, \
             side, \
             pl_obj.quantity, \
-            f'{avg_price:.4f}', \
-            f'{pl_obj.exposure:.2f}', \
+            str(round(avg_price,4)).replace('.',','), \
+            str(round(pl_obj.exposure,2)).replace('.',','), \
             pl_obj.n_trades]
 
 

@@ -1,3 +1,4 @@
+import datetime
 import os
 import requests
 import json
@@ -27,6 +28,6 @@ def get_symbol_info(symbol: str):
         headers={'Authorization': 'Bearer ' + os.environ['md_token']})
 
     if response.status_code != 200:
-        print(f"Error {response.status_code}")
+        print(f'{datetime.now():%H:%M:%S}: Error {response.status_code}')
 
     return response.json()

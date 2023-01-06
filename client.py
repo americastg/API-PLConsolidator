@@ -1,3 +1,4 @@
+from datetime import datetime
 import json
 import time
 import requests
@@ -33,25 +34,27 @@ class WebSocketClient:
 
     def on_message(self, ws, message):
         if message == b'\xff':
-            ws.send(b'\xff')
+            ws.send(b'1')
             return
         messageDes = msgpack.unpackb(message)
-        self.incomingMsgs.append(messageDes)
-        self.PLConsolidator.process_message(self.incomingMsgs)
-        self.incomingMsgs.clear()
+        self.PLConsolidator.process_message(messageDes)
 
     def on_error(self, error):
-        print(f"Error {error}")
+       print(f'{datetime.now():%H:%M:%S}: Error {error}')
+
+    def on_close(self, status, msg):
+        print(f'{datetime.now():%H:%M:%S}: connection close -> status: {status} / msg: {msg}')
 
     def run(self):
-        print("Running...")
+        print(f'{datetime.now():%H:%M:%S}: Running...')
         wsUrl = f"{config['base_url']}:{config['atgapi_port']}/api".replace('http','ws')
         websocket.enableTrace(False)
         ws = websocket.WebSocketApp(f'{wsUrl}/ws/trades',
             on_open = lambda ws: self.on_open(ws),
             on_error = lambda ws,msg: self.on_error(msg),
-            on_message = lambda ws,msg: self.on_message(ws, msg))
-        ws.run_forever(ping_interval=30, ping_timeout=None)
+            on_message = lambda ws,msg: self.on_message(ws, msg),
+            on_close = lambda ws,status,msg: self.on_close(status,msg))
+        ws.run_forever()
 
     def export_PL(self):
         while True:
