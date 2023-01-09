@@ -53,7 +53,11 @@ class PLConsolidator:
                 user=msg['User'],
                 exchange=md['segment'])     
         
-        pls[symbol].exposure += calculate_exposure(msg['Price'], msg['Quantity'], md['contractMultiplier'])
+        if symbol.startswith('DI1'):
+            pls[symbol].exposure += calculate_exposure_DI(msg['Price'], msg['Quantity'], md['daysToExpire'])
+        else:
+            pls[symbol].exposure += calculate_exposure(msg['Price'], msg['Quantity'], md['contractMultiplier'])
+
         pls[symbol].quantity += msg['Quantity']
         pls[symbol].n_trades += 1 
 
@@ -87,8 +91,13 @@ class PLConsolidator:
             print(f"{dt:%H:%M:%S}: Não foram encontrados dados de PL para exportação")
 
     def format_row(self, dt, symbol, side, pl_obj):
-        avg_price = calculate_avg_price(pl_obj.exposure, pl_obj.quantity, 
+        if symbol.startswith('DI'):
+            avg_price = calculate_avg_price_DI(pl_obj.exposure, pl_obj.quantity, 
+            self.md_info[symbol]['daysToExpire'])
+        else:
+            avg_price = calculate_avg_price(pl_obj.exposure, pl_obj.quantity, 
             self.md_info[symbol]['contractMultiplier'])
+
         return [ 
             dt, \
             pl_obj.broker, \
@@ -106,9 +115,16 @@ class PLConsolidator:
 def calculate_exposure(price, qty, cont_mult):
     return qty * price * cont_mult
 
+def calculate_exposure_DI(price, qty, days_to_expire):
+    return qty * 10**5/((1+(price)/100)**(days_to_expire/252)) 
 
 def calculate_avg_price(fin, qty, cont_mult):
     if qty == 0 or fin == 0: return 0
     avg = fin/qty
     if cont_mult == 0: return avg
     return avg * cont_mult
+
+def calculate_avg_price_DI(fin, qty, days_to_expire):
+    if fin == 0:
+        return 0
+    return 100 * ((qty * 10**5/fin)**(252/days_to_expire) - 1)
