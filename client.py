@@ -9,14 +9,14 @@ with open('settings.json', 'r') as f:
     config = json.load(f)
 
 
-def get_token():
+def get_token(user, password):
     response = requests.post(
         url=f"{config['base_url']}:{config['token_port'] }/connect/token", 
         data= {
             'grant_type': 'password',  # do not change
             'scope': 'externalapi',    # do not change
-            'username': config['cred_atgapi']['username'],
-            'password': config['cred_atgapi']['password'],
+            'username': user,
+            'password': password,
             'client_id': config['cred_atgapi']['client_id'],
             'client_secret': config['cred_atgapi']['client_secret']})
     response.raise_for_status()
@@ -28,8 +28,8 @@ class WebSocketClient:
         self.PLConsolidator = PLConsolidator()
         self.incomingMsgs = []
 
-    def on_open(self, ws):
-        token = get_token()
+    def on_open(self, ws, user, password):
+        token = get_token(user, password)
         ws.send(token)
 
     def on_message(self, ws, message):
@@ -45,12 +45,12 @@ class WebSocketClient:
     def on_close(self, status, msg):
         print(f'{datetime.now():%H:%M:%S}: connection close -> status: {status} / msg: {msg}')
 
-    def run(self):
+    def run(self, user, password):
         print(f'{datetime.now():%H:%M:%S}: Running...')
         wsUrl = f"{config['base_url']}:{config['atgapi_port']}/api".replace('http','ws')
         websocket.enableTrace(False)
         ws = websocket.WebSocketApp(f'{wsUrl}/ws/trades',
-            on_open = lambda ws: self.on_open(ws),
+            on_open = lambda ws: self.on_open(ws, user, password),
             on_error = lambda ws,msg: self.on_error(msg),
             on_message = lambda ws,msg: self.on_message(ws, msg),
             on_close = lambda ws,status,msg: self.on_close(status,msg))
